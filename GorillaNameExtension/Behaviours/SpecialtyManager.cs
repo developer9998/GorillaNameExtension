@@ -74,9 +74,7 @@ internal class SpecialtyManager : MonoBehaviour
 
     public void OnJoinedRoom()
     {
-        Plugin.Logger.LogMessage("Join");
-
-        FriendBackendController.Instance.GetFriends();
+        FriendBackendController.Instance.GetFriends(); // verify if all friends are still added the same way
 
         foreach (NetPlayer netPlayer in NetworkSystem.Instance.PlayerListOthers)
         {
@@ -86,7 +84,8 @@ internal class SpecialtyManager : MonoBehaviour
 
     public void OnPlayerJoined(NetPlayer netPlayer)
     {
-        if (IsFriend(netPlayer)) FriendBackendController.Instance.GetFriends();
+        if (netPlayer.IsLocal) return;
+        if (IsFriend(netPlayer)) FriendBackendController.Instance.GetFriends(); // verify if friend is still added
         ScanPlayer(netPlayer);
     }
 
