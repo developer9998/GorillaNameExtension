@@ -19,9 +19,9 @@ internal class NameChangePatch
             return;
         }
 
-        if (!isLocalRig && !SpecialtyManager.NeedToCheckRecently(userId) && SpecialtyManager.HasPlayedWithUsRecently(userId) is var hasPlayedBefore && hasPlayedBefore.recentlyPlayed == RecentState.Before)
+        if (!isLocalRig && !SpecialtyManager.NeedToCheckRecently(userId) && SpecialtyManager.HasPlayedWithUsRecently(userId) is var hasPlayedBefore && hasPlayedBefore.State == RecentState.Before)
         {
-            TagConfigService.SetConfig(__instance, SpecialtyManager.RecentTagColour, 0.3f, 1f - hasPlayedBefore.value, 100);
+            TagConfigService.SetConfig(__instance, SpecialtyManager.RecentTagColour, 0.3f, 1f - hasPlayedBefore.Value, 100);
             return;
         }
 

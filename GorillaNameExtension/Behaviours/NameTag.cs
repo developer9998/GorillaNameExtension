@@ -19,8 +19,8 @@ internal class NameTag : MonoBehaviour
     public bool Initialized => _initialized;
     public Color InnerColour => _inner.color;
     public Color OuterColour => _outer.color;
-    public TagConfig Config => _latestConfig;
-    public int Priority => _latestPriority;
+    public TagConfig CurrentConfig => _latestConfig;
+    public int CurrentPriority => _latestPriority;
 
     public VRRig Rig;
 
@@ -28,7 +28,7 @@ internal class NameTag : MonoBehaviour
 
     private TMP_Text _outer, _inner, _inspiration;
 
-    private Dictionary<int, TagConfig> _tags;
+    private Dictionary<int, TagConfig> _configuration;
 
     // the cache for colours that are essensially only worked on within this script
     // so think of any colours that are configured by the base game
@@ -76,13 +76,13 @@ internal class NameTag : MonoBehaviour
         _internalColourCache.Add(vimColour, new()
         {
             Colour = vimColour,
-            GlowAmount = 0.5f
+            GlowAmount = 0.35f
         });
 
-        _tags = new()
+        _configuration = new()
         {
             {
-                HarmonyLib.Priority.Last,
+                Priority.Last,
                 _internalColourCache[Color.white]
             }
         };
@@ -109,9 +109,9 @@ internal class NameTag : MonoBehaviour
     internal void OnDisable()
     {
         if (!_initialized) return;
-        var baseColour = _tags[HarmonyLib.Priority.Last];
-        _tags.Clear();
-        _tags[HarmonyLib.Priority.Last] = baseColour;
+        var baseColour = _configuration[Priority.Last];
+        _configuration.Clear();
+        _configuration[Priority.Last] = baseColour;
     }
 
     internal void UpdateName()
@@ -130,17 +130,17 @@ internal class NameTag : MonoBehaviour
     {
         if (priority < 1 || priority > HarmonyLib.Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {HarmonyLib.Priority.First}");
 
-        if (_tags.ContainsKey(priority))
+        if (_configuration.ContainsKey(priority))
         {
-            var oldConfig = _tags[priority];
-            _tags[priority] = config;
+            var oldConfig = _configuration[priority];
+            _configuration[priority] = config;
 
             var fields = typeof(TagConfig).GetFields(AccessTools.all); // TODO: cache this
             if (fields.Any(field => field.GetValue(oldConfig) == field.GetValue(config))) UpdateColour();
         }
         else
         {
-            _tags.Add(priority, config);
+            _configuration.Add(priority, config);
             UpdateColour();
         }
     }
@@ -149,7 +149,7 @@ internal class NameTag : MonoBehaviour
     {
         if (priority < 1 || priority > HarmonyLib.Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {HarmonyLib.Priority.First}");
 
-        if (_tags.ContainsKey(priority)) _tags.Remove(priority);
+        if (_configuration.ContainsKey(priority)) _configuration.Remove(priority);
 
         UpdateColour();
     }
@@ -158,9 +158,19 @@ internal class NameTag : MonoBehaviour
     {
         // Plugin.Logger.LogMessage($"Base colour for {Rig.rigContainer.Creator.GetPlayerRef()} set to {inspoColour}");
 
-        if (_internalColourCache.TryGetValue(inspoColour, out TagConfig colour) && _tags[HarmonyLib.Priority.Last] != colour)
+        if (!_internalColourCache.TryGetValue(inspoColour, out TagConfig colour))
         {
-            _tags[HarmonyLib.Priority.Last] = colour;
+            colour = new()
+            {
+                Colour = inspoColour,
+                GlowAmount = 0f
+            };
+            _internalColourCache.Add(inspoColour, colour);
+        }
+
+        if (_configuration[HarmonyLib.Priority.Last] != colour)
+        {
+            _configuration[HarmonyLib.Priority.Last] = colour;
             UpdateColour();
         }
     }
@@ -169,7 +179,7 @@ internal class NameTag : MonoBehaviour
     {
         if (!_initialized) return;
 
-        var orderedTags = _tags.OrderByDescending(kvp => kvp.Key).ToArray();
+        var orderedTags = _configuration.OrderByDescending(kvp => kvp.Key).ToArray();
         var latestTagWithQueue = orderedTags.First();
         TagConfig latestTag = latestTagWithQueue.Value;
 

@@ -50,7 +50,7 @@ internal class SpecialtyManager : MonoBehaviour
 
     private static readonly HashSet<string> checkedUserIDs = [];
 
-    private static readonly Dictionary<string, (RecentState state, float value)> checkedUserCache = [];
+    private static readonly Dictionary<string, RecentlyPlayed> checkedUserCache = [];
 
     public void Start()
     {
@@ -60,7 +60,7 @@ internal class SpecialtyManager : MonoBehaviour
         RecentTimeLength = Plugin.Config.Bind("Specialty", "Recent Duration", 259200, "The duration in seconds that counts as being recently played within").Value;
 
         NetworkSystem.Instance.OnMultiplayerStarted += OnJoinedRoom;
-        NetworkSystem.Instance.OnReturnedToSinglePlayer+= OnLeftRoom;
+        NetworkSystem.Instance.OnReturnedToSinglePlayer += OnLeftRoom;
         NetworkSystem.Instance.OnPlayerJoined += OnPlayerJoined;
         NetworkSystem.Instance.OnPlayerLeft += OnPlayerLeft;
         FriendBackendController.Instance.OnGetFriendsComplete += OnGetFriends;
@@ -92,29 +92,18 @@ internal class SpecialtyManager : MonoBehaviour
 
     private void ScanPlayer(NetPlayer netPlayer)
     {
-        Plugin.Logger.LogMessage(netPlayer.GetPlayerRef());
-
         string userId = netPlayer.UserId;
 
         bool updateName = false;
 
         if (NeedToCheckRecently(userId) && checkedUserIDs.Add(userId))
         {
+            updateName = true;
+
             var hasPlayedBefore = HasPlayedWithUsRecently(userId);
             checkedUserCache.Add(userId, hasPlayedBefore);
 
-            DateTime now = DateTime.Now;
-            DateTimeOffset dateTimeOffset = (DateTimeOffset)now;
-            long unixTimeSeconds = dateTimeOffset.ToUnixTimeSeconds();
-
-            string key = string.Concat("pd_", userId);
-
-            if (hasPlayedBefore.recentlyPlayed == RecentState.Before)
-                PlayerPrefs.SetString(key, (unixTimeSeconds + RecentTimeDelay).ToString());
-            else
-                PlayerPrefs.SetString(key, unixTimeSeconds.ToString());
-
-            updateName = true;
+            Plugin.Logger.LogMessage($"{netPlayer.GetPlayerRef().NickName}: {hasPlayedBefore.State} with value {hasPlayedBefore.Value:F2}");
         }
 
         if (IsFriend(userId)) updateName = true;
@@ -150,6 +139,7 @@ internal class SpecialtyManager : MonoBehaviour
     private void OnGetFriends(bool success)
     {
         if (!success) return;
+
         var friends = FriendBackendController.Instance.FriendsList;
         friendUserIDs = [.. friends.Where(friend => friend != null && friend.Presence != null).Select(friend => friend.Presence.FriendLinkId)];
         RigUtility.Rigs.Values.ForEach(rig => rig.Rig.UpdateName());
@@ -161,6 +151,7 @@ internal class SpecialtyManager : MonoBehaviour
     private void OnAddFriend(NetPlayer player, bool success)
     {
         if (!success) return;
+
         friendUserIDs.Add(player.UserId);
         RigUtility.GetRig(player)?.Rig?.UpdateName();
         GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
@@ -171,6 +162,7 @@ internal class SpecialtyManager : MonoBehaviour
     private void OnRemoveFriend(FriendBackendController.Friend friend, bool success)
     {
         if (!success || friend == null || friend.Presence == null) return;
+
         friendUserIDs.Remove(friend.Presence.FriendLinkId);
         RigUtility.Rigs.Values.ForEach(rig => rig.Rig.UpdateName());
         GorillaScoreboardTotalUpdater.instance.UpdateActiveScoreboards();
@@ -191,19 +183,42 @@ internal class SpecialtyManager : MonoBehaviour
 
     public static bool NeedToCheckRecently(string userId) => !checkedUserIDs.Contains(userId);
 
-    public static (RecentState recentlyPlayed, float value) HasPlayedWithUsRecently(string userId)
+    public static RecentlyPlayed HasPlayedWithUsRecently(string userId)
     {
         if (checkedUserCache.TryGetValue(userId, out var cache))
             return cache;
 
-        string key = string.Concat("pd_", userId);
-        if (!long.TryParse(PlayerPrefs.GetString(key, "0"), NumberStyles.Integer, CultureInfo.InvariantCulture, out long lastPlayedTime) || lastPlayedTime == 0) return (RecentState.Never, 0);
+        string key = GetRecentKey(userId);
+        string value = PlayerPrefs.GetString(key, "-1");
 
-        long currentTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
-        if (lastPlayedTime > currentTime - RecentTimeDelay && lastPlayedTime <= currentTime) return (RecentState.Now, 1);
+        RecentlyPlayed result = RecentlyPlayed.Never;
+        long curTime = ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds();
 
-        return ((lastPlayedTime + RecentTimeLength) > currentTime) ? (RecentState.Before, 1f - Mathf.InverseLerp(lastPlayedTime, lastPlayedTime + RecentTimeLength, currentTime)) : (RecentState.Never, 0);
+        if (value == "-1" || !long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long time)) goto SetResult;
+
+        if (time > curTime - RecentTimeDelay && time <= curTime)
+        {
+            result = RecentlyPlayed.Now;
+            goto SetResult;
+        }
+
+        if ((time + RecentTimeLength) > curTime)
+        {
+            result = new()
+            {
+                Value = 1f - Mathf.InverseLerp(time, time + RecentTimeLength, curTime),
+                State = RecentState.Before
+            };
+        }
+
+    SetResult:
+
+        PlayerPrefs.SetString(key, (result.State == RecentState.Before ? curTime + RecentTimeDelay : curTime).ToString());
+
+        return result;
     }
+
+    private static string GetRecentKey(string userId) => string.Concat("rp_", userId);
 
     #endregion
 }

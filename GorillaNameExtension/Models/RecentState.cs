@@ -26,7 +26,7 @@ SOFTWARE.
 
 namespace GorillaNameExtension.Models;
 
-internal enum RecentState : byte
+public enum RecentState : byte
 {
     Never = 0,
     Before = 1,
