@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace GorillaNameExtension;
 
-[BepInPlugin(Constants.GUID, Constants.Name, Constants.Version)]
+[BepInPlugin("dev.gorillanameextension", "GorillaNameExtension", "1.0.0")]
 [BepInDependency("dev.gorillalibrary")]
 public class Plugin : BaseUnityPlugin
 {
@@ -29,7 +29,7 @@ public class Plugin : BaseUnityPlugin
         Events.Core.OnGameInitialized += Initialize;
         Events.Rig.OnRigAdded += SetupRig;
 
-        Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), Constants.GUID);
+        Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
     }
 
     public void Initialize()
