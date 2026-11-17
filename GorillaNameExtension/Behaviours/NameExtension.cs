@@ -51,7 +51,7 @@ internal class NameExtension : MonoBehaviour
     {
         try
         {
-            _primaryExtension.SetConfig(priority, colour);
+            _primaryExtension?.SetConfig(priority, colour);
         }
         catch (Exception ex)
         {
@@ -64,7 +64,7 @@ internal class NameExtension : MonoBehaviour
     {
         try
         {
-            _primaryExtension.RemoveConfig(priority);
+            _primaryExtension?.RemoveConfig(priority);
         }
         catch (Exception ex)
         {

@@ -1,7 +1,6 @@
 ﻿using GorillaNameExtension.Behaviours;
 using GorillaNameExtension.Models;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -25,7 +24,7 @@ public static class TagConfigService
     public static void SetConfig(VRRig rig, Color colour, float glowAmount = Constants.StandardGlow, float bleedAmount = 0f, int priority = Priority.Normal)
     {
         glowAmount = Mathf.Clamp01(glowAmount);
-        bleedAmount = Convert.ToSingle(Math.Round(Mathf.Clamp01(bleedAmount), Constants.BleedDigitCount));
+        bleedAmount = Mathf.Clamp01(bleedAmount);
 
         if (!_glowCache.TryGetValue((colour, glowAmount, bleedAmount), out TagConfig simpleColour))
         {
@@ -46,7 +45,7 @@ public static class TagConfigService
 
     public static void SetConfig(VRRig rig, Color colour, Color border, float bleedAmount = 0f, int priority = Priority.Normal)
     {
-        bleedAmount = Convert.ToSingle(Math.Round(Mathf.Clamp01(bleedAmount), Constants.BleedDigitCount));
+        bleedAmount = Mathf.Clamp01(bleedAmount);
 
         if (!_borderCache.TryGetValue((colour, border, bleedAmount), out TagConfig complexColour))
         {

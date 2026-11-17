@@ -128,7 +128,7 @@ internal class NameTag : MonoBehaviour
 
     internal void SetConfig(int priority, TagConfig config)
     {
-        if (priority < 1 || priority > HarmonyLib.Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {HarmonyLib.Priority.First}");
+        if (priority < 1 || priority > Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {Priority.First}");
 
         if (_configuration.ContainsKey(priority))
         {
@@ -147,7 +147,7 @@ internal class NameTag : MonoBehaviour
 
     internal void RemoveConfig(int priority)
     {
-        if (priority < 1 || priority > HarmonyLib.Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {HarmonyLib.Priority.First}");
+        if (priority < 1 || priority > Priority.First) throw new IndexOutOfRangeException($"Priority of name colour should be within 1 and {Priority.First}");
 
         if (_configuration.ContainsKey(priority)) _configuration.Remove(priority);
 
@@ -168,9 +168,9 @@ internal class NameTag : MonoBehaviour
             _internalColourCache.Add(inspoColour, colour);
         }
 
-        if (_configuration[HarmonyLib.Priority.Last] != colour)
+        if (_configuration[Priority.Last] != colour)
         {
-            _configuration[HarmonyLib.Priority.Last] = colour;
+            _configuration[Priority.Last] = colour;
             UpdateColour();
         }
     }
@@ -189,10 +189,9 @@ internal class NameTag : MonoBehaviour
         FinalColour(_latestConfig, out Color finalInner, out Color finalOuter);
         for (int i = 1; i < orderedTags.Length; i++)
         {
-            var tag = orderedTags[i];
-            var bleed = Mathf.Clamp01(tag.Value.Bleed);
+            var bleed = Mathf.Clamp01(orderedTags[i - 1].Value.Bleed);
             if (Mathf.Approximately(bleed, 0)) break;
-            FinalColour(tag.Value, out Color inner, out Color outer);
+            FinalColour(orderedTags[i].Value, out Color inner, out Color outer);
             finalInner = Color.Lerp(finalInner, inner, bleed);
             finalOuter = Color.Lerp(finalOuter, outer, bleed);
         }

@@ -206,7 +206,7 @@ internal class SpecialtyManager : MonoBehaviour
         {
             result = new()
             {
-                Value = 1f - Mathf.InverseLerp(time, time + RecentTimeLength, curTime),
+                Value = 1f - Mathf.Clamp01(Convert.ToSingle(curTime - time) / Convert.ToSingle(RecentTimeLength)),
                 State = RecentState.Before
             };
         }
