@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 
@@ -122,7 +123,8 @@ internal class NameTag : MonoBehaviour
         {
             var value = property.GetValue(_inspiration);
             property.SetValue(_inner, value);
-            property.SetValue(_outer, value);
+            if (property.Name == "text" && value is string text) property.SetValue(_outer, new Regex(@"^<color=#[0-9a-fA-F]{6}>$").Replace(text, "").Replace("</color>", ""));
+            else property.SetValue(_outer, value);
         }
     }
 
